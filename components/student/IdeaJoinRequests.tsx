@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { incomingJoinRequests } from "@/data/student";
 import type { IncomingIdeaJoinRequest } from "@/data/student";
 import { EmptyState } from "@/components/student/EmptyState";
 import { StatusBadge } from "@/components/student/StatusBadge";
@@ -9,9 +8,7 @@ import { StudentCard } from "@/components/student/StudentCard";
 import { StudentSectionHeader } from "@/components/student/StudentSectionHeader";
 
 export function IdeaJoinRequests() {
-  const [requests, setRequests] = useState<IncomingIdeaJoinRequest[]>(
-    Array.isArray(incomingJoinRequests) ? incomingJoinRequests : []
-  );
+  const [requests, setRequests] = useState<IncomingIdeaJoinRequest[]>([]);
   const [message, setMessage] = useState("");
   const safeRequests = Array.isArray(requests) ? requests : [];
 

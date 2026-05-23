@@ -1,5 +1,5 @@
 import { CardShell } from "@/components/CardShell";
-import type { Opportunity } from "@/data/home";
+import type { Opportunity } from "@/lib/public/supabase-data";
 
 type OpportunityCardProps = {
   opportunity: Opportunity;

@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import type { Profile } from "@/lib/auth/types";
+import type { AdminRole, Profile } from "@/lib/auth/types";
 
 const ACCESS_COOKIE = "misbar-access-token";
 const REFRESH_COOKIE = "misbar-refresh-token";
@@ -7,6 +7,13 @@ const REFRESH_COOKIE = "misbar-refresh-token";
 type SupabaseUser = {
   id: string;
   email?: string;
+  app_metadata?: {
+    role?: string;
+  };
+  user_metadata?: {
+    full_name?: string;
+    role?: string;
+  };
 };
 
 type AuthResponse = {
@@ -19,8 +26,16 @@ type AuthResponse = {
   message?: string;
 };
 
-type ProfileLookupColumn = "id" | "user_id";
 type ProfileInsert = Omit<Profile, "created_at">;
+type AdminProfileInsert = {
+  id: string;
+  email: string;
+  role: AdminRole;
+  full_name?: string;
+  phone_number?: string;
+  gender?: string;
+  college?: string;
+};
 type AdminLogPayload = {
   adminUserId: string;
   adminName: string;
@@ -36,7 +51,6 @@ type AdminLogPayload = {
 };
 type ProfilePatchResult = {
   ok: boolean;
-  column: ProfileLookupColumn;
   row: Partial<Profile> | null;
   error?: string;
 };
@@ -72,27 +86,13 @@ function authMessage(response: AuthResponse) {
   );
 }
 
-function profileLookupUrl(column: ProfileLookupColumn, userId: string) {
+function profileLookupUrl(userId: string) {
   const { url } = getSupabaseConfig();
-  return `${url}/rest/v1/profiles?${column}=eq.${encodeURIComponent(userId)}&select=*`;
+  return `${url}/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=*`;
 }
 
-function profileInsertPayload(profile: ProfileInsert, column: ProfileLookupColumn) {
-  const { id, ...profileFields } = profile;
-
-  if (column === "id") {
-    return { id, ...profileFields };
-  }
-
-  return { user_id: id, ...profileFields };
-}
-
-async function lookupProfileByColumn(
-  accessToken: string,
-  userId: string,
-  column: ProfileLookupColumn
-) {
-  const response = await fetch(profileLookupUrl(column, userId), {
+async function lookupProfileById(accessToken: string, userId: string) {
+  const response = await fetch(profileLookupUrl(userId), {
     headers: getHeaders(accessToken),
     cache: "no-store"
   });
@@ -112,17 +112,6 @@ async function lookupProfileByColumn(
     profile: rows[0] ?? null,
     error: ""
   };
-}
-
-function shouldRetryProfileInsertWithUserId(message: string) {
-  const normalizedMessage = message.toLowerCase();
-
-  return (
-    normalizedMessage.includes("user_id") ||
-    normalizedMessage.includes("'id' column") ||
-    normalizedMessage.includes("schema cache") ||
-    normalizedMessage.includes("null value")
-  );
 }
 
 export async function signUpWithSupabase(params: {
@@ -205,14 +194,14 @@ export async function getUserFromToken(accessToken: string) {
 export async function insertProfile(accessToken: string, profile: ProfileInsert) {
   const { url } = getSupabaseConfig();
 
-  for (const column of ["id", "user_id"] as const) {
+  for (const column of ["id"] as const) {
     const response = await fetch(`${url}/rest/v1/profiles`, {
       method: "POST",
       headers: {
         ...getHeaders(accessToken),
         Prefer: "return=minimal"
       },
-      body: JSON.stringify(profileInsertPayload(profile, column)),
+      body: JSON.stringify(profile),
       cache: "no-store"
     });
 
@@ -228,12 +217,6 @@ export async function insertProfile(accessToken: string, profile: ProfileInsert)
     }
 
     const body = await response.json().catch(() => null);
-    const message = String(body?.message ?? "");
-
-    if (column === "id" && shouldRetryProfileInsertWithUserId(message)) {
-      continue;
-    }
-
     console.log("[Misbar auth debug]", {
       authenticatedUserId: profile.id,
       profileLookupColumn: column,
@@ -249,16 +232,16 @@ export async function insertProfile(accessToken: string, profile: ProfileInsert)
 
   console.log("[Misbar auth debug]", {
     authenticatedUserId: profile.id,
-    profileLookupColumn: "user_id",
+    profileLookupColumn: "id",
     profileFound: false,
     action: "insertProfile"
   });
 
-  return { error: "تعذر حفظ ملف المستخدم في قاعدة البيانات", column: "user_id" as const };
+  return { error: "تعذر حفظ ملف المستخدم في قاعدة البيانات" };
 }
 
 export async function getProfile(accessToken: string, userId: string) {
-  const idLookup = await lookupProfileByColumn(accessToken, userId, "id");
+  const idLookup = await lookupProfileById(accessToken, userId);
 
   if (idLookup.ok && idLookup.profile) {
     console.log("[Misbar auth debug]", {
@@ -270,37 +253,105 @@ export async function getProfile(accessToken: string, userId: string) {
     return idLookup.profile;
   }
 
-  const userIdLookup = await lookupProfileByColumn(accessToken, userId, "user_id");
-
-  if (userIdLookup.ok && userIdLookup.profile) {
-    console.log("[Misbar auth debug]", {
-      authenticatedUserId: userId,
-      profileLookupColumn: "user_id",
-      profileFound: true
-    });
-
-    return userIdLookup.profile;
-  }
-
   console.log("[Misbar auth debug]", {
     authenticatedUserId: userId,
-    profileLookupColumn: userIdLookup.ok ? "user_id" : "id",
+    profileLookupColumn: "id",
     profileFound: false,
     idLookupOk: idLookup.ok,
-    userIdLookupOk: userIdLookup.ok
+    error: idLookup.error
   });
 
   return null;
 }
 
-async function patchProfileColumn(
+function isAdminRole(role?: string): role is AdminRole {
+  return role === "admin" || role === "chief_admin" || role === "super_admin";
+}
+
+export async function ensureAdminProfile(
+  accessToken: string,
+  user: SupabaseUser,
+  fallbackRole?: string
+) {
+  const existingProfile = await getProfile(accessToken, user.id);
+
+  console.log("[Misbar admin profile]", {
+    authenticatedUserId: user.id,
+    profileFound: Boolean(existingProfile),
+    action: existingProfile ? "found" : "create_if_missing"
+  });
+
+  if (existingProfile) {
+    return existingProfile;
+  }
+
+  const role = isAdminRole(user.user_metadata?.role)
+    ? user.user_metadata.role
+    : isAdminRole(user.app_metadata?.role)
+      ? user.app_metadata.role
+    : isAdminRole(fallbackRole)
+      ? fallbackRole
+      : null;
+
+  if (!role) {
+    console.error("[Misbar admin profile] missing admin role for profile creation", {
+      authenticatedUserId: user.id,
+      email: user.email
+    });
+
+    return null;
+  }
+
+  const payload: AdminProfileInsert = {
+    id: user.id,
+    email: user.email ?? "",
+    role,
+    full_name: user.user_metadata?.full_name ?? user.email ?? "Admin",
+    phone_number: "",
+    gender: "ذكر",
+    college: "Misbar Administration"
+  };
+  const { url } = getSupabaseConfig();
+  const response = await fetch(`${url}/rest/v1/profiles`, {
+    method: "POST",
+    headers: {
+      ...getHeaders(accessToken),
+      Prefer: "return=representation"
+    },
+    body: JSON.stringify(payload),
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    console.error("[Misbar admin profile] profile creation failed", {
+      authenticatedUserId: user.id,
+      email: user.email,
+      role,
+      error: await response.text().catch(() => "")
+    });
+
+    return null;
+  }
+
+  const rows = (await response.json().catch(() => [])) as Profile[];
+  const createdProfile = rows[0] ?? null;
+
+  console.log("[Misbar admin profile] profile created", {
+    authenticatedUserId: user.id,
+    profileCreated: Boolean(createdProfile),
+    role
+  });
+
+  return createdProfile;
+}
+
+async function patchProfileById(
   accessToken: string,
   userId: string,
-  column: ProfileLookupColumn,
   payload: Record<string, string | null>
 ): Promise<ProfilePatchResult> {
   const { url } = getSupabaseConfig();
-  const response = await fetch(`${url}/rest/v1/profiles?${column}=eq.${encodeURIComponent(userId)}&select=id,user_id,last_admin_login_at,last_admin_seen_at,last_admin_action_at`, {
+  const response = await fetch(`${url}/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=id,last_admin_login_at,last_admin_seen_at,last_admin_action_at`, {
     method: "PATCH",
     headers: {
       ...getHeaders(accessToken),
@@ -313,7 +364,6 @@ async function patchProfileColumn(
   if (!response.ok) {
     return {
       ok: false,
-      column,
       row: null,
       error: await response.text().catch(() => "")
     };
@@ -324,7 +374,6 @@ async function patchProfileColumn(
 
   return {
     ok: Boolean(row),
-    column,
     row,
     error: row ? undefined : "No matching profile row was updated"
   };
@@ -335,13 +384,7 @@ export async function updateProfileFields(
   userId: string,
   payload: Record<string, string | null>
 ) {
-  const updatedById = await patchProfileColumn(accessToken, userId, "id", payload);
-
-  if (updatedById.ok) {
-    return updatedById;
-  }
-
-  return patchProfileColumn(accessToken, userId, "user_id", payload);
+  return patchProfileById(accessToken, userId, payload);
 }
 
 export async function touchAdminLogin(accessToken: string, userId: string) {
@@ -354,7 +397,7 @@ export async function touchAdminLogin(accessToken: string, userId: string) {
   if (!updateResult.ok) {
     console.error("[Misbar admin login] failed to update last_admin_login_at", {
       authenticatedUserId: userId,
-      attemptedLookupColumn: updateResult.column,
+      attemptedLookupColumn: "id",
       error: updateResult.error
     });
 
@@ -362,7 +405,6 @@ export async function touchAdminLogin(accessToken: string, userId: string) {
       ok: false,
       updatedAt: now,
       persistedAt: null,
-      column: updateResult.column,
       error: updateResult.error ?? "Profile row was not updated"
     };
   }
@@ -376,14 +418,14 @@ export async function touchAdminLogin(accessToken: string, userId: string) {
   if (confirmed) {
     console.log("[Misbar admin login] last_admin_login_at saved", {
       authenticatedUserId: userId,
-      profileLookupColumn: updateResult.column,
+      profileLookupColumn: "id",
       updatedAt: now,
       persistedAt
     });
   } else {
     console.error("[Misbar admin login] last_admin_login_at update was not confirmed", {
       authenticatedUserId: userId,
-      profileLookupColumn: updateResult.column,
+      profileLookupColumn: "id",
       updatedAt: now,
       persistedAt
     });
@@ -393,7 +435,6 @@ export async function touchAdminLogin(accessToken: string, userId: string) {
     ok: confirmed,
     updatedAt: now,
     persistedAt,
-    column: updateResult.column,
     error: confirmed ? undefined : "Profile read-back did not confirm last_admin_login_at"
   };
 }

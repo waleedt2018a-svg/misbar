@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { mockRequests } from "@/data/student";
 import { getOpportunityApplications } from "@/lib/student/storage";
 import type { StudentRequest } from "@/data/student";
 import { EmptyState } from "@/components/student/EmptyState";
@@ -28,9 +27,7 @@ function belongsToSection(request: StudentRequest, section: string) {
 }
 
 export function StudentRequests() {
-  const [requests, setRequests] = useState<StudentRequest[]>(
-    Array.isArray(mockRequests) ? mockRequests : []
-  );
+  const [requests, setRequests] = useState<StudentRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -43,7 +40,7 @@ export function StudentRequests() {
       otherParty: application?.facultyName || "عضو هيئة التدريس"
     }));
 
-    setRequests([...applications, ...(Array.isArray(mockRequests) ? mockRequests : [])]);
+    setRequests(applications);
     setIsLoading(false);
   }, []);
 

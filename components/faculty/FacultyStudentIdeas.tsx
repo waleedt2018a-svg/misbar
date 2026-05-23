@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { mockFacultyStudentIdeas } from "@/data/faculty";
 import { FacultyBlockedFeatureNotice } from "@/components/faculty/FacultyBlockedFeatureNotice";
 import { FacultyCard } from "@/components/faculty/FacultyCard";
 import { FacultyEmptyState } from "@/components/faculty/FacultyEmptyState";
@@ -19,7 +18,7 @@ export function FacultyStudentIdeas() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    setIdeas(getFacultyStudentIdeas(mockFacultyStudentIdeas));
+    setIdeas(getFacultyStudentIdeas());
   }, []);
 
   function expressInterest(id: string) {

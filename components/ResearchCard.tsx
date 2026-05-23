@@ -1,5 +1,5 @@
 import { CardShell } from "@/components/CardShell";
-import type { ResearchProject } from "@/data/home";
+import type { ResearchProject } from "@/lib/public/supabase-data";
 
 type ResearchCardProps = {
   project: ResearchProject;

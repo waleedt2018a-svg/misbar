@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { mockFacultyApplicants } from "@/data/faculty";
 import { FacultyCard } from "@/components/faculty/FacultyCard";
 import { FacultyEmptyState } from "@/components/faculty/FacultyEmptyState";
 import { FacultyStatusBadge } from "@/components/faculty/FacultyStatusBadge";
@@ -29,7 +28,7 @@ export function FacultyApplicants() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    setApplicants(getFacultyApplicants(mockFacultyApplicants));
+    setApplicants(getFacultyApplicants());
   }, []);
 
   function updateStatus(id: string, status: FacultyApplicantStatus) {

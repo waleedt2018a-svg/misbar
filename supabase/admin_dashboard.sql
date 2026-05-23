@@ -32,6 +32,32 @@ alter table public.profiles add constraint profiles_status_check check (status i
 -- role in ('student', 'faculty', 'admin', 'chief_admin', 'super_admin')
 -- Constraint names vary by project, so verify the current name in Supabase before dropping it.
 
+create or replace function public.is_active_misbar_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.profiles
+    where profiles.id = auth.uid()
+      and profiles.role in ('super_admin', 'chief_admin', 'admin')
+      and coalesce(profiles.admin_status, 'active') = 'active'
+  );
+$$;
+
+grant execute on function public.is_active_misbar_admin() to authenticated;
+
+drop policy if exists "Admins read profiles" on public.profiles;
+
+create policy "Admins read profiles"
+on public.profiles
+for select
+to authenticated
+using (auth.uid() = id or public.is_active_misbar_admin());
+
 alter table public.admin_warnings enable row level security;
 alter table public.reports enable row level security;
 

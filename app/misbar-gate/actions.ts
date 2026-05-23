@@ -6,7 +6,7 @@ import type { AdminRole } from "@/lib/auth/types";
 import { getString } from "@/lib/auth/validation";
 import {
   clearAuthCookies,
-  getProfile,
+  ensureAdminProfile,
   getUserFromToken,
   logAdminAction,
   setAuthCookies,
@@ -41,7 +41,11 @@ export async function adminGateLoginAction(
     return { message: "بيانات الدخول غير صحيحة." };
   }
 
-  const profile = await getProfile(data.access_token, user.id);
+  const profile = await ensureAdminProfile(
+    data.access_token,
+    user,
+    data.user?.user_metadata?.role ?? data.user?.app_metadata?.role
+  );
 
   if (!profile || !adminRoles.includes(profile.role as AdminRole)) {
     await clearAuthCookies();
@@ -56,13 +60,11 @@ export async function adminGateLoginAction(
   const loginTouchResult = await touchAdminLogin(data.access_token, user.id);
 
   if (!loginTouchResult.ok) {
-    console.error("[Misbar admin gate] login timestamp write failed", {
+    console.error("[Misbar admin gate] login timestamp write failed but login will continue", {
       authenticatedUserId: user.id,
       adminEmail: profile.email,
       error: loginTouchResult.error
     });
-
-    return { message: "تعذر تحديث وقت الدخول الإداري. حاول مرة أخرى." };
   }
 
   await logAdminAction(data.access_token, {

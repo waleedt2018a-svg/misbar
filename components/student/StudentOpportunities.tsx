@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { studentOpportunities } from "@/data/student";
 import {
   getOpportunityApplications,
   getResearchProfile,
@@ -9,6 +8,7 @@ import {
   saveOpportunityApplications
 } from "@/lib/student/storage";
 import type { StoredOpportunityApplication } from "@/lib/student/types";
+import type { StudentOpportunity } from "@/data/student";
 import { BlockedFeatureNotice } from "@/components/student/BlockedFeatureNotice";
 import { EmptyState } from "@/components/student/EmptyState";
 import { StatusBadge } from "@/components/student/StatusBadge";
@@ -20,7 +20,7 @@ export function StudentOpportunities() {
   const [isLoading, setIsLoading] = useState(true);
   const [blockedMessage, setBlockedMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-  const opportunities = Array.isArray(studentOpportunities) ? studentOpportunities : [];
+  const opportunities: StudentOpportunity[] = [];
 
   useEffect(() => {
     setApplications(getOpportunityApplications());

@@ -1,6 +1,5 @@
 "use client";
 
-import { starterFacultyOpportunities } from "@/data/faculty";
 import type {
   FacultyAcademicProfileDraft,
   FacultyApplicant,
@@ -154,14 +153,14 @@ export function saveFacultyContactSettings(settings: FacultyContactSettingsDraft
 }
 
 export function getFacultyOpportunities() {
-  return readJson<StoredFacultyOpportunity[]>(opportunitiesKey, starterFacultyOpportunities);
+  return readJson<StoredFacultyOpportunity[]>(opportunitiesKey, []);
 }
 
 export function saveFacultyOpportunities(opportunities: StoredFacultyOpportunity[]) {
   writeJson(opportunitiesKey, Array.isArray(opportunities) ? opportunities : []);
 }
 
-export function getFacultyApplicants(fallback: FacultyApplicant[]) {
+export function getFacultyApplicants(fallback: FacultyApplicant[] = []) {
   return readJson<FacultyApplicant[]>(applicantsKey, fallback);
 }
 
@@ -169,7 +168,7 @@ export function saveFacultyApplicants(applicants: FacultyApplicant[]) {
   writeJson(applicantsKey, applicants);
 }
 
-export function getFacultyStudentIdeas(fallback: FacultyStudentIdea[]) {
+export function getFacultyStudentIdeas(fallback: FacultyStudentIdea[] = []) {
   return readJson<FacultyStudentIdea[]>(studentIdeasKey, fallback);
 }
 

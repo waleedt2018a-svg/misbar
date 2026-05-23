@@ -1,5 +1,5 @@
 import { CardShell } from "@/components/CardShell";
-import type { StudentIdea } from "@/data/home";
+import type { StudentIdea } from "@/lib/public/supabase-data";
 
 type IdeaCardProps = {
   idea: StudentIdea;

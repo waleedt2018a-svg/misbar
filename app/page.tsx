@@ -1,26 +1,13 @@
 import { Footer } from "@/components/Footer";
 import { HeroSection } from "@/components/HeroSection";
 import { IdeaCard } from "@/components/IdeaCard";
-import { JournalCard } from "@/components/JournalCard";
 import { Navbar } from "@/components/Navbar";
 import { OpportunityCard } from "@/components/OpportunityCard";
-import { PaperLabCard } from "@/components/PaperLabCard";
 import { ResearchCard } from "@/components/ResearchCard";
 import { SectionTitle } from "@/components/SectionTitle";
 import type { Profile } from "@/lib/auth/types";
+import { getPublicHomeData, type PlatformStats } from "@/lib/public/supabase-data";
 import { getAccessToken, getProfile, getUserFromToken } from "@/lib/supabase/rest";
-import {
-  ideas,
-  journalEntries,
-  opportunities,
-  paperLabs,
-  researchProjects
-} from "@/data/home";
-import {
-  mockRequests,
-  starterIdeas,
-  studentOpportunities as dashboardOpportunities
-} from "@/data/student";
 
 async function getCurrentProfile() {
   const accessToken = await getAccessToken();
@@ -38,11 +25,19 @@ async function getCurrentProfile() {
   return getProfile(accessToken, user.id);
 }
 
-function StudentWelcomeCard({ profile }: { profile: Profile }) {
-  const stats = [
-    { label: "فرص متاحة", value: dashboardOpportunities.length },
-    { label: "طلباتي", value: mockRequests.length },
-    { label: "أفكاري", value: starterIdeas.length }
+function PublicEmptyState({ message }: { message: string }) {
+  return (
+    <div className="rounded-3xl border border-gold/20 bg-navy-2/60 p-8 text-center text-muted">
+      {message}
+    </div>
+  );
+}
+
+function StudentWelcomeCard({ profile, stats }: { profile: Profile; stats: PlatformStats }) {
+  const statItems = [
+    { label: "فرص منشورة", value: stats.publishedOpportunities },
+    { label: "أفكار منشورة", value: stats.publishedIdeas },
+    { label: "مستفيدون", value: stats.registeredBeneficiaries }
   ];
 
   return (
@@ -73,7 +68,7 @@ function StudentWelcomeCard({ profile }: { profile: Profile }) {
         </div>
 
         <div className="mt-5 flex flex-wrap gap-3">
-          {stats.map((stat) => (
+          {statItems.map((stat) => (
             <div
               key={stat.label}
               className="inline-flex items-center gap-2 rounded-full border border-gold/15 bg-gold/5 px-3 py-2 text-sm text-muted"
@@ -100,7 +95,7 @@ function FacultyWelcomeCard({ profile }: { profile: Profile }) {
           <div>
             <p className="text-2xl font-extrabold text-ivory">مرحبًا، {displayName}</p>
             <p className="mt-3 max-w-3xl leading-8 text-muted">
-              يمكنك من خلال مِسبار إنشاء فرص بحثية، مراجعة الطلاب المهتمين، والاطلاع على أفكار الطلاب المناسبة لإشرافك.
+              يمكنك من خلال مسبار إنشاء فرص بحثية، مراجعة الطلاب المهتمين، والاطلاع على أفكار الطلاب المناسبة لإشرافك.
             </p>
           </div>
 
@@ -125,12 +120,15 @@ function FacultyWelcomeCard({ profile }: { profile: Profile }) {
 }
 
 export default async function Home() {
-  const profile = await getCurrentProfile();
+  const [profile, publicData] = await Promise.all([
+    getCurrentProfile(),
+    getPublicHomeData()
+  ]);
 
   return (
     <main className="site-shell min-h-screen">
       <Navbar profile={profile} />
-      {profile?.role === "student" ? <StudentWelcomeCard profile={profile} /> : null}
+      {profile?.role === "student" ? <StudentWelcomeCard profile={profile} stats={publicData.stats} /> : null}
       {profile?.role === "faculty" ? <FacultyWelcomeCard profile={profile} /> : null}
       <HeroSection />
 
@@ -138,25 +136,29 @@ export default async function Home() {
         <SectionTitle
           eyebrow="مسارات واعدة"
           title="أبحاث مميزة"
-          description="نماذج بحثية قابلة للتعاون بين أعضاء هيئة التدريس والطلاب ضمن مجالات علمية دقيقة."
+          description="أبحاث وأفكار منشورة من قاعدة بيانات مسبار."
         />
-        <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {researchProjects.map((project) => (
-            <ResearchCard key={project.title} project={project} />
-          ))}
-        </div>
+        {publicData.researchProjects.length ? (
+          <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {publicData.researchProjects.map((project) => (
+              <ResearchCard key={`${project.title}-${project.researcher}`} project={project} />
+            ))}
+          </div>
+        ) : (
+          <div className="mt-8">
+            <PublicEmptyState message="لا توجد بيانات حاليًا" />
+          </div>
+        )}
       </section>
 
       <section id="journal" className="mx-auto max-w-7xl px-5 py-12 sm:px-8 lg:py-16">
         <SectionTitle
           eyebrow="مخرجات طلابية"
-          title="مجلة مِسبار الطلابية"
-          description="مساحة نشر أكاديمية تجمع المقترحات والملصقات والمسودات والأوراق المنشورة للباحثين الطلاب."
+          title="مجلة مسبار الطلابية"
+          description="تظهر هنا المخرجات المنشورة عند توفرها في قاعدة البيانات."
         />
-        <div className="mt-8 grid gap-5 lg:grid-cols-2">
-          {journalEntries.map((entry) => (
-            <JournalCard key={entry.title} entry={entry} />
-          ))}
+        <div className="mt-8">
+          <PublicEmptyState message="لا توجد بيانات حاليًا" />
         </div>
       </section>
 
@@ -164,38 +166,48 @@ export default async function Home() {
         <SectionTitle
           eyebrow="انضمام بحثي"
           title="فرص بحثية"
-          description="فرص معلنة من المشرفين للطلاب المهتمين بالمشاركة في مشاريع بحثية قائمة."
+          description="فرص بحثية منشورة من Supabase فقط."
         />
-        <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {opportunities.map((opportunity) => (
-            <OpportunityCard key={opportunity.title} opportunity={opportunity} />
-          ))}
-        </div>
+        {publicData.opportunities.length ? (
+          <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {publicData.opportunities.map((opportunity) => (
+              <OpportunityCard key={`${opportunity.title}-${opportunity.faculty}`} opportunity={opportunity} />
+            ))}
+          </div>
+        ) : (
+          <div className="mt-8">
+            <PublicEmptyState message="لا توجد فرص بحثية منشورة" />
+          </div>
+        )}
       </section>
 
       <section id="ideas" className="mx-auto max-w-7xl px-5 py-12 sm:px-8 lg:py-16">
         <SectionTitle
           eyebrow="بدايات أصيلة"
           title="أفكار الطلاب"
-          description="أفكار بحثية طلابية تبحث عن مشرفين أو فرق أو جهات بحثية لتحويلها إلى مشاريع مكتملة."
+          description="أفكار بحثية طلابية منشورة من Supabase فقط."
         />
-        <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {ideas.map((idea) => (
-            <IdeaCard key={idea.title} idea={idea} />
-          ))}
-        </div>
+        {publicData.ideas.length ? (
+          <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {publicData.ideas.map((idea) => (
+              <IdeaCard key={`${idea.title}-${idea.major}`} idea={idea} />
+            ))}
+          </div>
+        ) : (
+          <div className="mt-8">
+            <PublicEmptyState message="لا توجد أفكار بحثية منشورة" />
+          </div>
+        )}
       </section>
 
       <section id="paper-lab" className="mx-auto max-w-7xl px-5 py-12 sm:px-8 lg:py-16">
         <SectionTitle
           eyebrow="قراءة وتحليل"
           title="Paper Lab"
-          description="مساحة منظمة لتفكيك الأوراق العلمية ومناقشة مناهجها ونتائجها مع باحثين طلاب."
+          description="تظهر جلسات القراءة المنشورة عند توفرها في قاعدة البيانات."
         />
-        <div className="mt-8 grid gap-5 lg:grid-cols-3">
-          {paperLabs.map((paperLab) => (
-            <PaperLabCard key={paperLab.title} paperLab={paperLab} />
-          ))}
+        <div className="mt-8">
+          <PublicEmptyState message="لا توجد بيانات حاليًا" />
         </div>
       </section>
 

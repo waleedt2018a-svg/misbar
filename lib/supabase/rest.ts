@@ -60,7 +60,7 @@ function getSupabaseConfig() {
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!url || !anonKey) {
-    throw new Error("Supabase environment variables are missing");
+    throw new Error("Service configuration is missing");
   }
 
   return { url, anonKey };
@@ -225,7 +225,7 @@ export async function insertProfile(accessToken: string, profile: ProfileInsert)
     });
 
     return {
-      error: body?.message ?? "تعذر حفظ ملف المستخدم في قاعدة البيانات",
+      error: body?.message ?? "تعذر حفظ ملف المستخدم",
       column
     };
   }
@@ -237,7 +237,7 @@ export async function insertProfile(accessToken: string, profile: ProfileInsert)
     action: "insertProfile"
   });
 
-  return { error: "تعذر حفظ ملف المستخدم في قاعدة البيانات" };
+  return { error: "تعذر حفظ ملف المستخدم" };
 }
 
 export async function getProfile(accessToken: string, userId: string) {

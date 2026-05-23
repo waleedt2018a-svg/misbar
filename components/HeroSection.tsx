@@ -2,16 +2,19 @@ import { HeroRoleCard } from "@/components/HeroRoleCard";
 
 const roles = [
   {
-    title: "للمشرفين",
-    description: "عرض مشاريعك والوصول للطلاب الباحثين"
+    title: "لأعضاء هيئة التدريس",
+    description: "استعرض فرص الإشراف البحثي وتواصل مع الطلبة لبناء مشاريع علمية متميزة.",
+    ctaHref: "#opportunities"
   },
   {
     title: "للطلاب",
-    description: "التقديم على الفرص أو عرض فكرتك البحثية"
+    description: "قدّم على الفرص البحثية أو شارك فكرتك لتبدأ رحلتك في البحث العلمي.",
+    ctaHref: "#ideas"
   },
   {
     title: "للمجتمع",
-    description: "مخرجات موثقة ومجلة طلابية للأبحاث"
+    description: "اطّلع على مخرجات بحثية موثوقة ومشاريع طلابية متميزة.",
+    ctaHref: "#research"
   }
 ];
 
@@ -55,7 +58,7 @@ export function HeroSection() {
           </div>
         </div>
 
-        <div className="glass-panel relative rounded-[2rem] p-4 sm:p-6">
+        <div className="research-gateway-panel glass-panel relative rounded-[2rem] p-4 sm:p-6">
           <div className="absolute -inset-1 -z-10 rounded-[2.2rem] bg-gold/10 blur-2xl" />
           <div className="mb-5 flex items-center justify-between border-b border-gold/15 pb-4">
             <p className="text-sm font-bold text-gold-light">بوابة البحث</p>
@@ -65,12 +68,13 @@ export function HeroSection() {
               <span className="h-2 w-2 rounded-full bg-muted/45" />
             </div>
           </div>
-          <div className="grid gap-4">
+          <div className="research-flow relative grid gap-4">
             {roles.map((role, index) => (
               <HeroRoleCard
                 key={role.title}
                 title={role.title}
                 description={role.description}
+                ctaHref={role.ctaHref}
                 index={`0${index + 1}`}
               />
             ))}

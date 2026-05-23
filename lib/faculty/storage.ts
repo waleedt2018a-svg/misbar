@@ -91,10 +91,7 @@ export function isFacultyAcademicProfileComplete(
   return Boolean(
     normalized.academicBio.trim() &&
       splitList(normalized.researchInterests).length > 0 &&
-      splitList(normalized.researchFields).length > 0 &&
-      normalized.researchExperience.trim() &&
-      normalized.publications.trim() &&
-      normalized.previousProjects.trim()
+      splitList(normalized.researchFields).length > 0
   );
 }
 
@@ -131,6 +128,7 @@ export function getFacultyAcademicProfile() {
 export function saveFacultyAcademicProfile(profile: FacultyAcademicProfileDraft) {
   const nextProfile = normalizeFacultyAcademicProfile(profile);
   writeJson(profileKey, nextProfile);
+  window.dispatchEvent(new Event("misbar:faculty-profile-updated"));
   return nextProfile;
 }
 
@@ -150,6 +148,25 @@ export function saveFacultyContactSettings(settings: FacultyContactSettingsDraft
     phoneNumber: text(settings.phoneNumber),
     preference: validContactPreference(settings.preference)
   });
+  window.dispatchEvent(new Event("misbar:faculty-profile-updated"));
+}
+
+export function isFacultyContactSettingsComplete(settings?: Partial<FacultyContactSettingsDraft> | null) {
+  return Boolean(validContactPreference(settings?.preference));
+}
+
+export function getFacultyCompletionStatus(email = "", phoneNumber = "") {
+  const academicProfile = getFacultyAcademicProfile();
+  const contactSettings = getFacultyContactSettings(email, phoneNumber);
+  const profileComplete = isFacultyAcademicProfileComplete(academicProfile);
+  const contactComplete = isFacultyContactSettingsComplete(contactSettings);
+
+  return {
+    profileComplete,
+    contactComplete,
+    fullyComplete: profileComplete && contactComplete,
+    progress: Math.round(((profileComplete ? 1 : 0) + (contactComplete ? 1 : 0)) * 50)
+  };
 }
 
 export function getFacultyOpportunities() {

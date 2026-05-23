@@ -40,7 +40,7 @@ function getSupabaseConfig() {
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!url || !anonKey) {
-    throw new Error("Supabase environment variables are missing");
+    throw new Error("Service configuration is missing");
   }
 
   return { url, anonKey };
@@ -150,7 +150,7 @@ function mapOpportunity(row: SupabaseRow): Opportunity {
   };
 }
 
-// Public pages intentionally use only Supabase rows; failed or empty reads render empty states.
+// Public pages intentionally render approved rows; failed or empty reads render empty states.
 export async function getPublicHomeData(): Promise<PublicHomeData> {
   const publishedFilter = "or=(status.eq.approved,status.eq.published)";
   const [ideaRows, opportunityRows, projectRows, stats] = await Promise.all([

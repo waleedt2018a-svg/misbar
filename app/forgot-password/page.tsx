@@ -6,7 +6,7 @@ export default function ForgotPasswordPage() {
     <AuthShell
       eyebrow="استعادة الحساب"
       title="إعادة تعيين كلمة المرور"
-      description="أدخل بريدك الجامعي وسنرسل لك رابطًا آمنًا لإعادة تعيين كلمة المرور عبر Supabase."
+      description="أدخل بريدك الجامعي وسنرسل لك رابطًا آمنًا لإعادة تعيين كلمة المرور."
     >
       <div className="mb-8">
         <p className="text-sm font-extrabold text-gold-light">مِسبار — حيث يُصنع الباحثون</p>

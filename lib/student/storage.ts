@@ -124,10 +124,7 @@ export function isResearchProfileComplete(profile?: Partial<ResearchProfileDraft
   return Boolean(
     normalizedProfile.bio.trim() &&
       splitList(normalizedProfile.researchInterests).length > 0 &&
-      splitList(normalizedProfile.researchSkills).length > 0 &&
-      splitList(normalizedProfile.technicalSkills).length > 0 &&
-      normalizedProfile.experiences.trim() &&
-      normalizedProfile.achievements.trim()
+      splitList(normalizedProfile.researchSkills).length > 0
   );
 }
 
@@ -139,6 +136,7 @@ export function getResearchProfile() {
 export function saveResearchProfile(profile: ResearchProfileDraft) {
   const nextProfile = normalizeResearchProfile(profile);
   writeJson(profileKey, nextProfile);
+  window.dispatchEvent(new Event("misbar:student-profile-updated"));
   return nextProfile;
 }
 
@@ -158,6 +156,25 @@ export function saveContactSettings(settings: ContactSettingsDraft) {
     phoneNumber: text(settings.phoneNumber),
     preference: validContactPreference(settings.preference)
   });
+  window.dispatchEvent(new Event("misbar:student-profile-updated"));
+}
+
+export function isContactSettingsComplete(settings?: Partial<ContactSettingsDraft> | null) {
+  return Boolean(validContactPreference(settings?.preference));
+}
+
+export function getStudentCompletionStatus(email = "", phoneNumber = "") {
+  const researchProfile = getResearchProfile();
+  const contactSettings = getContactSettings(email, phoneNumber);
+  const profileComplete = isResearchProfileComplete(researchProfile);
+  const contactComplete = isContactSettingsComplete(contactSettings);
+
+  return {
+    profileComplete,
+    contactComplete,
+    fullyComplete: profileComplete && contactComplete,
+    progress: Math.round(((profileComplete ? 1 : 0) + (contactComplete ? 1 : 0)) * 50)
+  };
 }
 
 export function getOpportunityApplications() {

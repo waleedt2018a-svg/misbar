@@ -6,7 +6,7 @@ import { OpportunityCard } from "@/components/OpportunityCard";
 import { ResearchCard } from "@/components/ResearchCard";
 import { SectionTitle } from "@/components/SectionTitle";
 import type { Profile } from "@/lib/auth/types";
-import { getPublicHomeData, type PlatformStats } from "@/lib/public/supabase-data";
+import { getPublicHomeData } from "@/lib/public/supabase-data";
 import { getAccessToken, getProfile, getUserFromToken } from "@/lib/supabase/rest";
 
 async function getCurrentProfile() {
@@ -25,19 +25,21 @@ async function getCurrentProfile() {
   return getProfile(accessToken, user.id);
 }
 
-function PublicEmptyState({ message }: { message: string }) {
+function PublicEmptyState({ title, text }: { title: string; text: string }) {
   return (
-    <div className="rounded-3xl border border-gold/20 bg-navy-2/60 p-8 text-center text-muted">
-      {message}
+    <div className="rounded-3xl border border-gold/20 bg-navy-2/60 p-8 text-center">
+      <h3 className="text-2xl font-extrabold text-ivory">{title}</h3>
+      <p className="mx-auto mt-3 max-w-2xl leading-8 text-muted">{text}</p>
     </div>
   );
 }
 
-function StudentWelcomeCard({ profile, stats }: { profile: Profile; stats: PlatformStats }) {
+function StudentWelcomeCard({ profile }: { profile: Profile }) {
   const statItems = [
-    { label: "فرص منشورة", value: stats.publishedOpportunities },
-    { label: "أفكار منشورة", value: stats.publishedIdeas },
-    { label: "مستفيدون", value: stats.registeredBeneficiaries }
+    { label: "طلباتي على الفرص", value: 0 },
+    { label: "أفكاري البحثية", value: 0 },
+    { label: "الرسائل/التنبيهات", value: 0 },
+    { label: "حالة ملفي البحثي", value: 0 }
   ];
 
   return (
@@ -128,7 +130,7 @@ export default async function Home() {
   return (
     <main className="site-shell min-h-screen">
       <Navbar profile={profile} />
-      {profile?.role === "student" ? <StudentWelcomeCard profile={profile} stats={publicData.stats} /> : null}
+      {profile?.role === "student" ? <StudentWelcomeCard profile={profile} /> : null}
       {profile?.role === "faculty" ? <FacultyWelcomeCard profile={profile} /> : null}
       <HeroSection />
 
@@ -136,7 +138,7 @@ export default async function Home() {
         <SectionTitle
           eyebrow="مسارات واعدة"
           title="أبحاث مميزة"
-          description="أبحاث وأفكار منشورة من قاعدة بيانات مسبار."
+          description="مساحة لإبراز الأبحاث والمبادرات النوعية في مِسبار."
         />
         {publicData.researchProjects.length ? (
           <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -146,7 +148,7 @@ export default async function Home() {
           </div>
         ) : (
           <div className="mt-8">
-            <PublicEmptyState message="لا توجد بيانات حاليًا" />
+            <PublicEmptyState title="لا توجد أبحاث مميزة بعد" text="نعمل على إبراز الأبحاث والمبادرات النوعية فور اعتمادها." />
           </div>
         )}
       </section>
@@ -155,10 +157,10 @@ export default async function Home() {
         <SectionTitle
           eyebrow="مخرجات طلابية"
           title="مجلة مسبار الطلابية"
-          description="تظهر هنا المخرجات المنشورة عند توفرها في قاعدة البيانات."
+          description="مساحة لعرض المخرجات البحثية الطلابية والمبادرات العلمية."
         />
         <div className="mt-8">
-          <PublicEmptyState message="لا توجد بيانات حاليًا" />
+          <PublicEmptyState title="المجلة قيد الإثراء" text="ستضم هذه المساحة مخرجات طلابية موثقة ومحتوى بحثيًا منتقى." />
         </div>
       </section>
 
@@ -166,7 +168,7 @@ export default async function Home() {
         <SectionTitle
           eyebrow="انضمام بحثي"
           title="فرص بحثية"
-          description="فرص بحثية منشورة من Supabase فقط."
+          description="فرص بحثية متاحة للتقديم بالتعاون مع أعضاء هيئة التدريس."
         />
         {publicData.opportunities.length ? (
           <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -176,7 +178,7 @@ export default async function Home() {
           </div>
         ) : (
           <div className="mt-8">
-            <PublicEmptyState message="لا توجد فرص بحثية منشورة" />
+            <PublicEmptyState title="لا توجد فرص منشورة بعد" text="ستظهر هنا الفرص البحثية بعد اعتمادها من فريق مِسبار." />
           </div>
         )}
       </section>
@@ -185,7 +187,7 @@ export default async function Home() {
         <SectionTitle
           eyebrow="بدايات أصيلة"
           title="أفكار الطلاب"
-          description="أفكار بحثية طلابية منشورة من Supabase فقط."
+          description="أفكار بحثية طلابية قابلة للتطوير والتحويل إلى مشاريع."
         />
         {publicData.ideas.length ? (
           <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -195,7 +197,7 @@ export default async function Home() {
           </div>
         ) : (
           <div className="mt-8">
-            <PublicEmptyState message="لا توجد أفكار بحثية منشورة" />
+            <PublicEmptyState title="لا توجد أفكار منشورة بعد" text="ستُعرض هنا الأفكار البحثية الطلابية بعد مراجعتها واعتمادها." />
           </div>
         )}
       </section>
@@ -204,10 +206,10 @@ export default async function Home() {
         <SectionTitle
           eyebrow="قراءة وتحليل"
           title="Paper Lab"
-          description="تظهر جلسات القراءة المنشورة عند توفرها في قاعدة البيانات."
+          description="مساحة لقراءة الأوراق العلمية وتحليلها ومناقشة الأفكار البحثية."
         />
         <div className="mt-8">
-          <PublicEmptyState message="لا توجد بيانات حاليًا" />
+          <PublicEmptyState title="Paper Lab قيد التجهيز" text="قريبًا مساحة لقراءة الأوراق ومناقشة الأفكار البحثية." />
         </div>
       </section>
 

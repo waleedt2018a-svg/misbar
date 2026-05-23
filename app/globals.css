@@ -132,6 +132,122 @@ body,
   background: linear-gradient(90deg, transparent, rgba(230, 199, 122, 0.72), transparent);
 }
 
+.research-gateway-panel {
+  isolation: isolate;
+}
+
+.research-gateway-panel::after {
+  content: "";
+  position: absolute;
+  inset: -25% -18%;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 22% 22%, rgba(230, 199, 122, 0.18), transparent 16rem),
+    radial-gradient(circle at 78% 68%, rgba(201, 164, 92, 0.12), transparent 18rem);
+  filter: blur(14px);
+  opacity: 0.68;
+  animation: gatewayGlow 9s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+.research-flow {
+  --flow-line: rgba(201, 164, 92, 0.3);
+}
+
+.research-flow::before {
+  content: "";
+  position: absolute;
+  top: 2rem;
+  bottom: 2rem;
+  right: 2.5rem;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, var(--flow-line) 18%, var(--flow-line) 82%, transparent);
+}
+
+.research-flow-card {
+  transform: translateZ(0);
+  transition:
+    transform 260ms ease,
+    box-shadow 260ms ease,
+    border-color 260ms ease;
+}
+
+.research-flow-card:hover {
+  transform: translateY(-4px) scale(1.015);
+  border-color: rgba(201, 164, 92, 0.45);
+  box-shadow: 0 24px 65px rgba(43, 43, 43, 0.12), 0 12px 28px rgba(201, 164, 92, 0.14);
+}
+
+.research-step-number {
+  position: relative;
+  animation: stepPulse 3.4s ease-in-out infinite;
+}
+
+.research-step-number::after {
+  content: "";
+  position: absolute;
+  inset: -0.45rem;
+  border-radius: inherit;
+  border: 1px solid rgba(230, 199, 122, 0.22);
+  opacity: 0;
+  animation: stepHalo 3.4s ease-in-out infinite;
+}
+
+.research-flow-cta {
+  opacity: 0;
+  transform: translateY(0.45rem);
+  pointer-events: none;
+  transition:
+    opacity 220ms ease,
+    transform 220ms ease,
+    background-color 220ms ease;
+}
+
+.research-flow-card:hover .research-flow-cta,
+.research-flow-card:focus-within .research-flow-cta {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.research-flow-cta:hover {
+  background-color: var(--gold-light);
+}
+
+@keyframes gatewayGlow {
+  0% {
+    transform: translate3d(-0.45rem, 0.25rem, 0) scale(1);
+  }
+
+  100% {
+    transform: translate3d(0.45rem, -0.35rem, 0) scale(1.04);
+  }
+}
+
+@keyframes stepPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(230, 199, 122, 0);
+  }
+
+  50% {
+    box-shadow: 0 0 20px rgba(230, 199, 122, 0.28);
+  }
+}
+
+@keyframes stepHalo {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
 .orbit-field {
   position: absolute;
   inset: -8rem -5rem auto auto;

@@ -63,7 +63,7 @@ function normalizeSupabaseError(error: string): AuthState {
   }
 
   return {
-    message: `حدث خطأ من Supabase: ${error}`,
+    message: `حدث خطأ أثناء تنفيذ الطلب: ${error}`,
     errors: {}
   };
 }
@@ -106,14 +106,14 @@ export async function signupAction(
 
   if (!data?.user) {
     return {
-      message: "لم يتم استلام بيانات المستخدم من Supabase بعد إنشاء الحساب"
+      message: "لم يتم استلام بيانات المستخدم بعد إنشاء الحساب"
     };
   }
 
   if (!data.access_token) {
     return {
       message:
-        "تم إنشاء الحساب، لكن لم يتم إنشاء جلسة مباشرة. تأكد من تعطيل تأكيد البريد الإلكتروني في إعدادات Supabase أثناء التطوير."
+        "تم إنشاء الحساب، لكن لم يتم إنشاء جلسة مباشرة. يرجى تسجيل الدخول باستخدام بيانات الحساب."
     };
   }
 
@@ -162,7 +162,7 @@ export async function loginAction(
   }
 
   if (!data?.access_token) {
-    return { message: "لم يتم إنشاء جلسة دخول صالحة من Supabase" };
+    return { message: "لم يتم إنشاء جلسة دخول صالحة" };
   }
 
   await setAuthCookies(data.access_token, data.refresh_token);

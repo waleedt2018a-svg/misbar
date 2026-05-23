@@ -2,7 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getResearchProfile } from "@/lib/student/storage";
+import {
+  getOpportunityApplications,
+  getStoredIdeas,
+  getStudentCompletionStatus
+} from "@/lib/student/storage";
 import { StudentCard } from "@/components/student/StudentCard";
 
 const actions = [
@@ -28,15 +32,37 @@ const actions = [
 
 export function StudentHome() {
   const [isLoading, setIsLoading] = useState(true);
-  const [isResearchProfileComplete, setIsResearchProfileComplete] = useState(false);
+  const [dashboardStats, setDashboardStats] = useState([
+    { label: "طلباتي على الفرص", value: 0 },
+    { label: "أفكاري البحثية", value: 0 },
+    { label: "الرسائل/التنبيهات", value: 0 },
+    { label: "حالة ملفي البحثي", value: "0%" }
+  ]);
+  const [completionStatus, setCompletionStatus] = useState({
+    profileComplete: false,
+    contactComplete: false,
+    fullyComplete: false,
+    progress: 0
+  });
 
   useEffect(() => {
-    try {
-      const researchProfile = getResearchProfile();
-      setIsResearchProfileComplete(Boolean(researchProfile.isComplete));
-    } finally {
+    function syncCompletionStatus() {
+      const status = getStudentCompletionStatus();
+
+      setCompletionStatus(status);
+      setDashboardStats([
+        { label: "طلباتي على الفرص", value: getOpportunityApplications().length },
+        { label: "أفكاري البحثية", value: getStoredIdeas().length },
+        { label: "الرسائل/التنبيهات", value: 0 },
+        { label: "حالة ملفي البحثي", value: status.fullyComplete ? "مكتمل" : `${status.progress}%` }
+      ]);
       setIsLoading(false);
     }
+
+    syncCompletionStatus();
+    window.addEventListener("misbar:student-profile-updated", syncCompletionStatus);
+
+    return () => window.removeEventListener("misbar:student-profile-updated", syncCompletionStatus);
   }, []);
 
   return (
@@ -47,7 +73,7 @@ export function StudentHome() {
         </StudentCard>
       ) : null}
 
-      {!isLoading && !isResearchProfileComplete ? (
+      {!isLoading && !completionStatus.profileComplete ? (
         <StudentCard>
           <p className="text-lg font-extrabold leading-9 text-gold-light">
             مرحبًا بك في مِسبار. ابدأ من إكمال ملفك البحثي حتى تصبح تجربتك أدق وأكثر فائدة.
@@ -56,7 +82,22 @@ export function StudentHome() {
             href="/student/profile"
             className="mt-4 inline-flex rounded-full bg-gold px-5 py-2.5 text-sm font-extrabold text-navy shadow-glow transition hover:bg-gold-light"
           >
-            إكمال الملف البحثي
+            إكمال ملفي البحثي
+          </Link>
+        </StudentCard>
+      ) : null}
+
+      {!isLoading && completionStatus.profileComplete && !completionStatus.contactComplete ? (
+        <StudentCard>
+          <p className="text-lg font-extrabold leading-9 text-gold-light">تبقّى فقط تحديد طريقة التواصل</p>
+          <p className="mt-2 leading-8 text-muted">
+            لن تظهر بيانات التواصل إلا حسب التفضيل الذي تختاره.
+          </p>
+          <Link
+            href="/student/contact-settings"
+            className="mt-4 inline-flex rounded-full bg-gold px-5 py-2.5 text-sm font-extrabold text-navy shadow-glow transition hover:bg-gold-light"
+          >
+            إكمال إعدادات التواصل
           </Link>
         </StudentCard>
       ) : null}
@@ -66,9 +107,18 @@ export function StudentHome() {
         <h2 className="mt-3 text-3xl font-extrabold text-ivory">لوحة الطالب</h2>
         <p className="mt-4 max-w-4xl text-lg leading-9 text-muted">
           هذه المساحة مخصصة لإدارة خطواتك داخل مِسبار: ملفك البحثي، الفرص المناسبة، أفكارك،
-          وطلباتك. الإحصاءات المختصرة تظهر الآن في الصفحة الرئيسية لتبقى هذه اللوحة عملية ومباشرة.
+          وطلباتك.
         </p>
       </StudentCard>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {dashboardStats.map((stat) => (
+          <StudentCard key={stat.label} className="p-4 sm:p-5">
+            <p className="text-sm font-bold text-muted">{stat.label}</p>
+            <p className="mt-3 text-3xl font-extrabold text-gold-light">{stat.value}</p>
+          </StudentCard>
+        ))}
+      </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
         {actions.map((action) => (

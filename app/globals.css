@@ -197,6 +197,83 @@ body,
   text-wrap: balance;
 }
 
+.admin-os {
+  --admin-bg: #f6f2e8;
+  --admin-panel: #ffffff;
+  --admin-dark: #1f1f1f;
+  --admin-charcoal: #2b2b2b;
+  --admin-gold: #c9a45c;
+  --admin-gold-soft: #efe1bd;
+  --admin-border: #d8d2c2;
+  --admin-muted: #6b7280;
+  --admin-danger: #b94a48;
+  --admin-success: #3c7a57;
+  min-height: 100vh;
+  color: var(--admin-dark);
+  background:
+    linear-gradient(135deg, rgba(31, 31, 31, 0.055) 0 1px, transparent 1px) 0 0 / 26px 26px,
+    radial-gradient(circle at 20% 10%, rgba(201, 164, 92, 0.16), transparent 30rem),
+    linear-gradient(180deg, #f6f2e8 0%, #eee8d8 100%);
+}
+
+.admin-sidebar {
+  background: linear-gradient(180deg, #232323 0%, #171717 100%);
+  border-left: 1px solid rgba(239, 225, 189, 0.16);
+  box-shadow: -20px 0 70px rgba(31, 31, 31, 0.18);
+}
+
+.admin-panel {
+  border: 1px solid var(--admin-border);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.94)),
+    radial-gradient(circle at 10% 0%, rgba(239, 225, 189, 0.45), transparent 18rem);
+  box-shadow: 0 20px 55px rgba(31, 31, 31, 0.08);
+}
+
+.admin-panel-dark {
+  border: 1px solid rgba(239, 225, 189, 0.16);
+  background: linear-gradient(145deg, #2b2b2b, #1f1f1f);
+  box-shadow: 0 24px 70px rgba(31, 31, 31, 0.2);
+}
+
+.admin-command-bar {
+  border: 1px solid rgba(216, 210, 194, 0.9);
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 16px 45px rgba(31, 31, 31, 0.08);
+  backdrop-filter: blur(16px);
+}
+
+.admin-card {
+  border: 1px solid var(--admin-border);
+  background: #ffffff;
+  box-shadow: 0 16px 45px rgba(31, 31, 31, 0.075);
+}
+
+.admin-card-dark {
+  border: 1px solid rgba(239, 225, 189, 0.18);
+  background:
+    linear-gradient(150deg, rgba(43, 43, 43, 0.98), rgba(31, 31, 31, 0.98)),
+    radial-gradient(circle at 15% 0%, rgba(201, 164, 92, 0.22), transparent 18rem);
+  box-shadow: 0 24px 75px rgba(31, 31, 31, 0.2);
+}
+
+.admin-table-row {
+  border: 1px solid rgba(216, 210, 194, 0.78);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.admin-input {
+  border: 1px solid var(--admin-border);
+  background: #fff;
+  color: var(--admin-dark);
+  outline: none;
+}
+
+.admin-input:focus {
+  border-color: var(--admin-gold);
+  box-shadow: 0 0 0 4px rgba(201, 164, 92, 0.14);
+}
+
 @media (max-width: 768px) {
   .orbit-field {
     inset: -4rem auto auto -8rem;

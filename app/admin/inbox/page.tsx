@@ -4,16 +4,16 @@ import { getAdminInboxItems } from "@/lib/admin/review-persistence";
 import { requireAdminRole } from "@/lib/auth/guards";
 import { getAccessToken } from "@/lib/supabase/rest";
 
-export default async function AdminOpportunitiesReviewPage() {
+export default async function AdminInboxPage() {
   await requireAdminRole();
   const accessToken = await getAccessToken();
-  const items = accessToken ? (await getAdminInboxItems(accessToken)).filter((item) => item.targetType === "opportunity") : [];
+  const items = accessToken ? await getAdminInboxItems(accessToken) : [];
 
   return (
     <div>
       <AdminSectionHeader
-        title="مراجعة الفرص البحثية"
-        description="فرص أعضاء هيئة التدريس القادمة من Supabase فقط."
+        title="الوارد الإداري"
+        description="طابور عمليات موحد يعتمد على Supabase ويعرض فقط العناصر التي تنتظر قرارًا إداريًا."
       />
       <AdminInbox items={items} />
     </div>

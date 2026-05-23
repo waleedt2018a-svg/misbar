@@ -21,6 +21,25 @@ type AuthResponse = {
 
 type ProfileLookupColumn = "id" | "user_id";
 type ProfileInsert = Omit<Profile, "created_at">;
+type AdminLogPayload = {
+  adminUserId: string;
+  adminName: string;
+  adminEmail: string;
+  adminRole: string;
+  actionType: string;
+  targetType: string;
+  targetId: string;
+  targetTitleOrEmail: string;
+  reason?: string;
+  restrictedToSuper?: boolean;
+  metadata?: Record<string, string>;
+};
+type ProfilePatchResult = {
+  ok: boolean;
+  column: ProfileLookupColumn;
+  row: Partial<Profile> | null;
+  error?: string;
+};
 
 function getSupabaseConfig() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -272,6 +291,150 @@ export async function getProfile(accessToken: string, userId: string) {
   });
 
   return null;
+}
+
+async function patchProfileColumn(
+  accessToken: string,
+  userId: string,
+  column: ProfileLookupColumn,
+  payload: Record<string, string | null>
+): Promise<ProfilePatchResult> {
+  const { url } = getSupabaseConfig();
+  const response = await fetch(`${url}/rest/v1/profiles?${column}=eq.${encodeURIComponent(userId)}&select=id,user_id,last_admin_login_at,last_admin_seen_at,last_admin_action_at`, {
+    method: "PATCH",
+    headers: {
+      ...getHeaders(accessToken),
+      Prefer: "return=representation"
+    },
+    body: JSON.stringify(payload),
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    return {
+      ok: false,
+      column,
+      row: null,
+      error: await response.text().catch(() => "")
+    };
+  }
+
+  const rows = (await response.json().catch(() => [])) as Partial<Profile>[];
+  const row = rows[0] ?? null;
+
+  return {
+    ok: Boolean(row),
+    column,
+    row,
+    error: row ? undefined : "No matching profile row was updated"
+  };
+}
+
+export async function updateProfileFields(
+  accessToken: string,
+  userId: string,
+  payload: Record<string, string | null>
+) {
+  const updatedById = await patchProfileColumn(accessToken, userId, "id", payload);
+
+  if (updatedById.ok) {
+    return updatedById;
+  }
+
+  return patchProfileColumn(accessToken, userId, "user_id", payload);
+}
+
+export async function touchAdminLogin(accessToken: string, userId: string) {
+  const now = new Date().toISOString();
+  const updateResult = await updateProfileFields(accessToken, userId, {
+    last_admin_login_at: now,
+    last_admin_seen_at: now
+  });
+
+  if (!updateResult.ok) {
+    console.error("[Misbar admin login] failed to update last_admin_login_at", {
+      authenticatedUserId: userId,
+      attemptedLookupColumn: updateResult.column,
+      error: updateResult.error
+    });
+
+    return {
+      ok: false,
+      updatedAt: now,
+      persistedAt: null,
+      column: updateResult.column,
+      error: updateResult.error ?? "Profile row was not updated"
+    };
+  }
+
+  const confirmedProfile = await getProfile(accessToken, userId);
+  const persistedAt = confirmedProfile?.last_admin_login_at ?? null;
+  const persistedTime = persistedAt ? new Date(persistedAt).getTime() : 0;
+  const requestedTime = new Date(now).getTime();
+  const confirmed = Boolean(persistedAt && Math.abs(persistedTime - requestedTime) < 5000);
+
+  if (confirmed) {
+    console.log("[Misbar admin login] last_admin_login_at saved", {
+      authenticatedUserId: userId,
+      profileLookupColumn: updateResult.column,
+      updatedAt: now,
+      persistedAt
+    });
+  } else {
+    console.error("[Misbar admin login] last_admin_login_at update was not confirmed", {
+      authenticatedUserId: userId,
+      profileLookupColumn: updateResult.column,
+      updatedAt: now,
+      persistedAt
+    });
+  }
+
+  return {
+    ok: confirmed,
+    updatedAt: now,
+    persistedAt,
+    column: updateResult.column,
+    error: confirmed ? undefined : "Profile read-back did not confirm last_admin_login_at"
+  };
+}
+
+export async function touchAdminSeen(accessToken: string, userId: string) {
+  await updateProfileFields(accessToken, userId, {
+    last_admin_seen_at: new Date().toISOString()
+  });
+}
+
+export async function logAdminAction(accessToken: string, payload: AdminLogPayload) {
+  const { url } = getSupabaseConfig();
+  const now = new Date().toISOString();
+
+  await fetch(`${url}/rest/v1/admin_activity_logs`, {
+    method: "POST",
+    headers: {
+      ...getHeaders(accessToken),
+      Prefer: "return=minimal"
+    },
+    body: JSON.stringify({
+      admin_user_id: payload.adminUserId,
+      admin_name: payload.adminName,
+      admin_email: payload.adminEmail,
+      admin_role: payload.adminRole,
+      action_type: payload.actionType,
+      target_type: payload.targetType,
+      target_id: payload.targetId,
+      target_title_or_email: payload.targetTitleOrEmail,
+      reason: payload.reason ?? "",
+      restricted_to_super: payload.restrictedToSuper ?? false,
+      metadata: payload.metadata ?? {},
+      created_at: now
+    }),
+    cache: "no-store"
+  }).catch(() => null);
+
+  await updateProfileFields(accessToken, payload.adminUserId, {
+    last_admin_action_at: now,
+    last_admin_seen_at: now
+  });
 }
 
 export async function setAuthCookies(accessToken: string, refreshToken?: string) {

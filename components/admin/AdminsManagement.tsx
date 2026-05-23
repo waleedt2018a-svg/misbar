@@ -1,75 +1,80 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
-import { managedAdmins } from "@/data/admin";
 import { AdminCard } from "@/components/admin/AdminCard";
+import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
+import { canChangeAdminRole, canControlAdminStatus } from "@/lib/admin/permissions";
 import type { ManagedAdmin } from "@/lib/admin/types";
 import type { AdminRole } from "@/lib/auth/types";
 
-export function AdminsManagement() {
-  const [admins, setAdmins] = useState<ManagedAdmin[]>(managedAdmins);
-  const [email, setEmail] = useState("");
+export function AdminsManagement({
+  role,
+  admins,
+  actionCounts
+}: {
+  role: AdminRole;
+  admins: ManagedAdmin[];
+  actionCounts: Record<string, number>;
+}) {
+  const [message, setMessage] = useState("");
+  const visibleAdmins = role === "chief_admin" ? admins.filter((admin) => admin.role === "admin") : admins;
 
-  function addAdmin(role: AdminRole) {
-    if (!email.trim()) {
+  function unsupportedAction(target: ManagedAdmin) {
+    if (!canControlAdminStatus(role, target.role)) {
+      setMessage("ليست لديك صلاحية لتنفيذ هذا الإجراء.");
       return;
     }
 
-    setAdmins((current) => [
-      {
-        id: `admin-${Date.now()}`,
-        name: email.split("@")[0],
-        email,
-        role,
-        createdAt: new Date().toISOString().slice(0, 10)
-      },
-      ...current
-    ]);
-    setEmail("");
+    window.confirm(`تأكيد تغيير حالة ${target.email}؟`);
+    setMessage("تم تأكيد الإجراء بصريًا. اربط هذا الزر بإجراء Supabase عند تفعيل التحكم المباشر.");
   }
 
-  function changeRole(id: string, role: AdminRole) {
-    setAdmins((current) => current.map((admin) => (admin.id === id ? { ...admin, role } : admin)));
-  }
+  function unsupportedRoleChange(target: ManagedAdmin) {
+    if (!canChangeAdminRole(role) || target.role === "super_admin") {
+      setMessage("ليست لديك صلاحية لتنفيذ هذا الإجراء.");
+      return;
+    }
 
-  function removeAdmin(id: string) {
-    setAdmins((current) => current.filter((admin) => admin.id !== id));
+    window.confirm(`تأكيد تغيير رتبة ${target.email}؟`);
+    setMessage("تم تأكيد الإجراء بصريًا. اربط هذا الزر بإجراء Supabase عند تفعيل تغيير الرتبة المباشر.");
   }
 
   return (
-    <div className="grid gap-6">
-      <AdminCard>
-        <h3 className="text-xl font-extrabold text-ivory">إضافة أدمن بالبريد الإلكتروني</h3>
-        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-          <input
-            className="w-full rounded-2xl border border-gold/20 bg-white px-4 py-3 text-ivory outline-none"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="admin@ksu.edu.sa"
-          />
-          <button onClick={() => addAdmin("admin")} className="rounded-full bg-gold px-5 py-2.5 text-sm font-extrabold text-navy">إضافة admin</button>
-          <button onClick={() => addAdmin("moderator")} className="rounded-full border border-gold/35 px-5 py-2.5 text-sm font-extrabold text-ivory">إضافة moderator</button>
-        </div>
-      </AdminCard>
-
-      {admins.map((admin) => (
-        <AdminCard key={admin.id}>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h3 className="text-xl font-extrabold text-ivory">{admin.name}</h3>
-              <p className="mt-2 text-sm text-muted">{admin.email}</p>
-              <p className="mt-2 text-sm font-bold text-gold">{admin.role}</p>
+    <div className="grid gap-5">
+      {message ? <p className="rounded-2xl border border-[#C9A45C]/35 bg-[#EFE1BD]/70 px-4 py-3 text-sm font-bold text-[#1F1F1F]">{message}</p> : null}
+      <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+        {visibleAdmins.map((admin) => (
+          <AdminCard key={admin.id}>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-2xl font-extrabold text-[#1F1F1F]">{admin.name}</h3>
+                <p className="mt-1 text-sm text-[#6B7280]">{admin.email || "لا يوجد بريد"}</p>
+              </div>
+              <AdminStatusBadge status={admin.adminStatus} />
             </div>
-            <div className="flex flex-wrap gap-2">
-              <button onClick={() => changeRole(admin.id, "admin")} className="rounded-full border border-gold/35 px-4 py-2 text-sm font-extrabold text-ivory">admin</button>
-              <button onClick={() => changeRole(admin.id, "moderator")} className="rounded-full border border-gold/35 px-4 py-2 text-sm font-extrabold text-ivory">moderator</button>
-              {admin.role !== "super_admin" ? (
-                <button onClick={() => removeAdmin(admin.id)} className="rounded-full border border-gold/35 px-4 py-2 text-sm font-extrabold text-ivory">إزالة دور الإدارة</button>
+            <div className="mt-5 grid gap-3 text-sm text-[#6B7280]">
+              <p><span className="font-bold text-[#1F1F1F]">الجوال: </span>{admin.phone || "لا يوجد"}</p>
+              <p><span className="font-bold text-[#1F1F1F]">الرتبة: </span>{admin.role}</p>
+              <p><span className="font-bold text-[#1F1F1F]">آخر دخول: </span>{admin.lastAdminLoginAt ?? "لا يوجد"}</p>
+              <p><span className="font-bold text-[#1F1F1F]">آخر إجراء: </span>{admin.lastAdminActionAt ?? "لا يوجد"}</p>
+              <p><span className="font-bold text-[#1F1F1F]">إجمالي الإجراءات: </span>{actionCounts[admin.email] ?? 0}</p>
+            </div>
+            <div className="mt-5 flex flex-wrap gap-2">
+              {canControlAdminStatus(role, admin.role) ? (
+                <button onClick={() => unsupportedAction(admin)} className="rounded-full bg-[#1F1F1F] px-4 py-2 text-xs font-extrabold text-white">
+                  {admin.adminStatus === "active" ? "إيقاف" : "تفعيل"}
+                </button>
               ) : null}
+              {canChangeAdminRole(role) && admin.role !== "super_admin" ? (
+                <button onClick={() => unsupportedRoleChange(admin)} className="rounded-full border border-[#D8D2C2] px-4 py-2 text-xs font-extrabold text-[#1F1F1F]">تغيير الرتبة</button>
+              ) : null}
+              <Link href={`/admin/activity-log?admin=${encodeURIComponent(admin.email)}`} className="rounded-full border border-[#C9A45C] px-4 py-2 text-xs font-extrabold text-[#1F1F1F]">عرض السجل</Link>
             </div>
-          </div>
-        </AdminCard>
-      ))}
+          </AdminCard>
+        ))}
+      </div>
+      {!visibleAdmins.length ? <AdminCard><p className="py-10 text-center text-lg font-extrabold text-[#6B7280]">لا توجد بيانات حاليًا</p></AdminCard> : null}
     </div>
   );
 }

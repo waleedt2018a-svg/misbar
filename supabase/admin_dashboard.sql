@@ -29,7 +29,7 @@ alter table public.profiles drop constraint if exists profiles_status_check;
 alter table public.profiles add constraint profiles_status_check check (status in ('active', 'inactive', 'banned'));
 
 -- If your existing role check only allows student/faculty/admin, replace it manually with:
--- role in ('student', 'faculty', 'admin', 'super_admin', 'moderator')
+-- role in ('student', 'faculty', 'admin', 'chief_admin', 'super_admin')
 -- Constraint names vary by project, so verify the current name in Supabase before dropping it.
 
 alter table public.admin_warnings enable row level security;
@@ -49,7 +49,7 @@ using (
   exists (
     select 1 from public.profiles
     where profiles.id = auth.uid()
-      and profiles.role in ('super_admin', 'admin', 'moderator')
+      and profiles.role in ('super_admin', 'chief_admin', 'admin')
   )
 );
 
@@ -62,7 +62,7 @@ with check (
   and exists (
     select 1 from public.profiles
     where profiles.id = auth.uid()
-      and profiles.role in ('super_admin', 'admin', 'moderator')
+      and profiles.role in ('super_admin', 'chief_admin', 'admin')
   )
 );
 
@@ -74,7 +74,7 @@ using (
   exists (
     select 1 from public.profiles
     where profiles.id = auth.uid()
-      and profiles.role in ('super_admin', 'admin', 'moderator')
+      and profiles.role in ('super_admin', 'chief_admin', 'admin')
   )
 );
 

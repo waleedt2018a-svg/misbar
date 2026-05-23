@@ -38,7 +38,7 @@ with check (
   and exists (
     select 1 from public.profiles
     where profiles.id = auth.uid()
-      and profiles.role in ('super_admin', 'admin', 'moderator')
+      and profiles.role in ('super_admin', 'chief_admin', 'admin')
   )
 );
 

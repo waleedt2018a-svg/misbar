@@ -1,16 +1,16 @@
 import { redirect } from "next/navigation";
 import type { AdminRole, Role } from "@/lib/auth/types";
-import { getAccessToken, getProfile, getUserFromToken } from "@/lib/supabase/rest";
+import { getAccessToken, getProfile, getUserFromToken, touchAdminSeen } from "@/lib/supabase/rest";
 
 const roleRedirects: Record<Role, string> = {
   student: "/student",
   faculty: "/faculty",
   admin: "/admin",
-  super_admin: "/admin",
-  moderator: "/admin"
+  chief_admin: "/admin",
+  super_admin: "/admin"
 };
 
-export const adminRoles: AdminRole[] = ["super_admin", "admin", "moderator"];
+export const adminRoles: AdminRole[] = ["super_admin", "chief_admin", "admin"];
 
 export async function requireRole(expectedRole: Role) {
   const accessToken = await getAccessToken();
@@ -64,6 +64,12 @@ export async function requireAdminRole() {
   if (!adminRoles.includes(profile.role as AdminRole)) {
     redirect("/");
   }
+
+  if (profile.admin_status === "inactive") {
+    redirect("/misbar-gate?inactive=1");
+  }
+
+  await touchAdminSeen(accessToken, user.id);
 
   return profile;
 }

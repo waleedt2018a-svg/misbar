@@ -18,17 +18,19 @@ export function AdminReviewList({
   emptyMessage: string;
 }) {
   const [reviewItems, setReviewItems] = useState(items);
-  const [notes, setNotes] = useState<Record<string, string>>({});
   const [reasons, setReasons] = useState<Record<string, string>>({});
   const [messages, setMessages] = useState<Record<string, string>>({});
   const canDecide = canApproveContent(role);
-  const isModerator = role === "moderator";
 
-  async function updateItem(item: AdminReviewItem, status: ReviewStatus, action: "approve" | "reject" | "request_edit") {
-    const reason = reasons[item.id] ?? "";
+  async function updateItem(
+    item: AdminReviewItem,
+    status: ReviewStatus,
+    action: "approve" | "reject" | "request_edit" | "pause" | "unpublish"
+  ) {
+    const reason = reasons[item.id]?.trim() ?? "";
     const result = await reviewContentAction({
       action,
-      targetType: "content",
+      targetType: item.id.startsWith("idea") ? "idea" : "opportunity",
       targetId: item.id,
       targetTitle: item.title,
       reason
@@ -46,37 +48,12 @@ export function AdminReviewList({
           ? {
               ...currentItem,
               status,
-              decisionReason: action === "reject" ? reason : currentItem.decisionReason,
-              requestedEditReason: action === "request_edit" ? reason : undefined,
+              rejectionReason: action === "reject" ? reason : currentItem.rejectionReason,
+              editReason: action === "request_edit" ? reason : currentItem.editReason,
+              pauseReason: action === "pause" || action === "unpublish" ? reason : currentItem.pauseReason,
               reviewedBy: "admin",
               reviewedAt: new Date().toISOString()
             }
-          : currentItem
-      )
-    );
-  }
-
-  async function recommend(item: AdminReviewItem, recommendation: "approve" | "reject" | "request_edit") {
-    const action =
-      recommendation === "approve"
-        ? "recommend_approve"
-        : recommendation === "reject"
-          ? "recommend_reject"
-          : "recommend_edit";
-    const result = await reviewContentAction({
-      action,
-      targetType: "content",
-      targetId: item.id,
-      targetTitle: item.title,
-      reason: notes[item.id]
-    });
-
-    setMessages((current) => ({ ...current, [item.id]: result.message }));
-
-    setReviewItems((currentItems) =>
-      currentItems.map((currentItem) =>
-        currentItem.id === item.id
-          ? { ...currentItem, moderatorRecommendation: recommendation, internalNote: notes[item.id] }
           : currentItem
       )
     );
@@ -107,26 +84,15 @@ export function AdminReviewList({
             <p><span className="font-bold text-ivory">المجال: </span>{item.field}</p>
           </div>
           <p className="mt-4 leading-8 text-muted">{item.description}</p>
-          {item.decisionReason ? (
-            <p className="mt-4 rounded-2xl border border-gold/20 bg-gold/5 px-4 py-3 text-sm font-bold text-muted">
-              سبب الرفض: {item.decisionReason}
-            </p>
-          ) : null}
-          {item.requestedEditReason ? (
-            <p className="mt-4 rounded-2xl border border-gold/20 bg-gold/5 px-4 py-3 text-sm font-bold text-muted">
-              سبب طلب التعديل: {item.requestedEditReason}
-            </p>
-          ) : null}
-          {item.moderatorRecommendation ? (
-            <p className="mt-4 rounded-2xl border border-gold/20 bg-gold/5 px-4 py-3 text-sm font-bold text-gold">
-              توصية المشرف: {item.moderatorRecommendation === "approve" ? "الموافقة" : "الرفض"}
-            </p>
-          ) : null}
+
+          {item.rejectionReason ? <p className="mt-4 rounded-2xl border border-gold/20 bg-gold/5 px-4 py-3 text-sm font-bold text-muted">سبب الرفض: {item.rejectionReason}</p> : null}
+          {item.editReason ? <p className="mt-4 rounded-2xl border border-gold/20 bg-gold/5 px-4 py-3 text-sm font-bold text-muted">سبب طلب التعديل: {item.editReason}</p> : null}
+          {item.pauseReason ? <p className="mt-4 rounded-2xl border border-gold/20 bg-gold/5 px-4 py-3 text-sm font-bold text-muted">سبب إيقاف النشر: {item.pauseReason}</p> : null}
 
           {canDecide ? (
             <div className="mt-5 grid gap-3">
               <label>
-                <span className="mb-2 block text-sm font-bold text-ivory">سبب الرفض أو طلب التعديل</span>
+                <span className="mb-2 block text-sm font-bold text-ivory">سبب الرفض أو طلب التعديل أو إيقاف النشر</span>
                 <textarea
                   className="w-full rounded-2xl border border-gold/20 bg-white px-4 py-3 text-ivory outline-none focus:border-gold focus:ring-4 focus:ring-gold/10"
                   rows={3}
@@ -143,23 +109,7 @@ export function AdminReviewList({
                 <button onClick={() => updateItem(item, "منشورة", "approve")} className="rounded-full bg-gold px-5 py-2.5 text-sm font-extrabold text-navy">اعتماد</button>
                 <button onClick={() => updateItem(item, "مرفوضة", "reject")} className="rounded-full border border-gold/35 px-5 py-2.5 text-sm font-extrabold text-ivory">رفض</button>
                 <button onClick={() => updateItem(item, "بحاجة لتعديل", "request_edit")} className="rounded-full border border-gold/35 px-5 py-2.5 text-sm font-extrabold text-ivory">طلب تعديل</button>
-              </div>
-            </div>
-          ) : null}
-
-          {isModerator ? (
-            <div className="mt-5 grid gap-3">
-              <textarea
-                className="w-full rounded-2xl border border-gold/20 bg-white px-4 py-3 text-ivory outline-none focus:border-gold focus:ring-4 focus:ring-gold/10"
-                rows={3}
-                placeholder="ملاحظة داخلية"
-                value={notes[item.id] ?? ""}
-                onChange={(event) => setNotes((current) => ({ ...current, [item.id]: event.target.value }))}
-              />
-              <div className="flex flex-wrap gap-2">
-                <button onClick={() => recommend(item, "approve")} className="rounded-full border border-gold/35 px-5 py-2.5 text-sm font-extrabold text-ivory">توصية بالموافقة</button>
-                <button onClick={() => recommend(item, "reject")} className="rounded-full border border-gold/35 px-5 py-2.5 text-sm font-extrabold text-ivory">توصية بالرفض</button>
-                <button onClick={() => recommend(item, "request_edit")} className="rounded-full border border-gold/35 px-5 py-2.5 text-sm font-extrabold text-ivory">توصية بطلب تعديل</button>
+                <button onClick={() => updateItem(item, "متوقف نشرها", "pause")} className="rounded-full border border-red-300/50 px-5 py-2.5 text-sm font-extrabold text-red-100">إيقاف نشر</button>
               </div>
             </div>
           ) : null}

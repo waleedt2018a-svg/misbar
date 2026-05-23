@@ -1,14 +1,21 @@
 import { AdminReports } from "@/components/admin/AdminReports";
 import { AdminSectionHeader } from "@/components/admin/AdminSectionHeader";
+import { getReportsFromSupabase } from "@/lib/admin/supabase-data";
+import { requireAdminRole } from "@/lib/auth/guards";
+import { getAccessToken } from "@/lib/supabase/rest";
 
-export default function AdminReportsPage() {
+export default async function AdminReportsPage() {
+  await requireAdminRole();
+  const accessToken = await getAccessToken();
+  const reports = accessToken ? await getReportsFromSupabase(accessToken) : [];
+
   return (
     <div>
       <AdminSectionHeader
         title="البلاغات"
-        description="متابعة البلاغات وتغيير حالتها من مفتوح إلى قيد المراجعة أو محلول أو مستبعد."
+        description="متابعة البلاغات الحقيقية المخزنة في Supabase بدون بيانات تجريبية."
       />
-      <AdminReports />
+      <AdminReports reports={reports} />
     </div>
   );
 }

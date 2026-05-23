@@ -1,23 +1,21 @@
-import { pendingStudentIdeas } from "@/data/admin";
-import { AdminReviewList } from "@/components/admin/AdminReviewList";
+import { AdminInbox } from "@/components/admin/AdminInbox";
 import { AdminSectionHeader } from "@/components/admin/AdminSectionHeader";
+import { getAdminInboxItems } from "@/lib/admin/review-persistence";
 import { requireAdminRole } from "@/lib/auth/guards";
-import type { AdminRole } from "@/lib/auth/types";
+import { getAccessToken } from "@/lib/supabase/rest";
 
 export default async function AdminStudentIdeasReviewPage() {
-  const profile = await requireAdminRole();
+  await requireAdminRole();
+  const accessToken = await getAccessToken();
+  const items = accessToken ? (await getAdminInboxItems(accessToken)).filter((item) => item.targetType === "idea") : [];
 
   return (
     <div>
       <AdminSectionHeader
         title="مراجعة أفكار الطلاب"
-        description="راجع أفكار الطلاب قبل إتاحتها للتفاعل والإشراف."
+        description="أفكار الطلاب القادمة من Supabase فقط."
       />
-      <AdminReviewList
-        items={pendingStudentIdeas}
-        role={profile.role as AdminRole}
-        emptyMessage="لا توجد أفكار بانتظار المراجعة"
-      />
+      <AdminInbox items={items} />
     </div>
   );
 }
